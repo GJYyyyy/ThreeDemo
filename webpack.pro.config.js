@@ -6,7 +6,7 @@ module.exports = Object.assign(baseConfig, {
     // 生产模式配置
     mode: 'production',
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(__dirname, 'docs'),
         filename: 'scripts/bundle.js',
         publicPath: './'
     }
