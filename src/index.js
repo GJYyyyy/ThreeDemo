@@ -29,9 +29,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
         raycaster = initRaycaster();
         renderer = initRenderer(true, true);
         controls = initControls();
-        model = await initModel('/city.gltf');
+        model = await initModel('/city.gltf'); // 请使用自己的模型文件，并自行修改initModel方法的代码
         scene.add(model);
-        spriteGroup = initMonitor();
+        spriteGroup = initMonitor('/video_point.png'); // 请使用自己的图片，并自行修改initMonitor方法的代码
         initEvent();
     }
 
@@ -59,16 +59,27 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
         // 设置光源
         const directionalLight = new Three.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(3000, 5000, 3000);
-        //阴影
-        directionalLight.shadow.camera.left = -20000;
-        directionalLight.shadow.camera.right = 20000;
-        directionalLight.shadow.camera.top = 5000;
-        directionalLight.shadow.camera.bottom = -5000;
+        directionalLight.position.set(3000, 5000, -3000);
+        // 设置阴影
+        directionalLight.castShadow = true;
+        // 设置光源阴影相机
+        const distance = 900;
+        directionalLight.shadow.camera.left = -distance;
+        directionalLight.shadow.camera.right = distance;
+        directionalLight.shadow.camera.top = distance;
+        directionalLight.shadow.camera.bottom = -distance;
         directionalLight.shadow.camera.far = 20000;
-        directionalLight.shadow.bias = -0.0001;
+        directionalLight.shadow.camera.near = 1;
+
+        directionalLight.target.position.set(0, 0, 0);
+        scene.add(directionalLight.target);
+
+        // 光源辅助线
+        // const helper = new Three.DirectionalLightHelper(directionalLight);
+        // scene.add(helper);
+
         scene.add(directionalLight);
-        const ambient = new Three.AmbientLight(0xffffff, 0.3);
+        const ambient = new Three.AmbientLight(0xffffff, 0.7);
         scene.add(ambient);
 
         return scene;
@@ -80,7 +91,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
      */
     function initCamera() {
         let camera = new Three.PerspectiveCamera(20, threeContainer.clientWidth / threeContainer.clientHeight, 1, 20000);
-        camera.position.set(0, 1700, 2400);
+        camera.position.set(0, 1700, 2000);
         camera.lookAt(0, 0, 0);
         return camera;
     }
@@ -100,7 +111,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
      * 初始化threejs渲染器，
      * 这里需要递归调用requestAnimationFrame来递归渲染3D模型,
      * 模型能不能动主要是在这个函数里面实现
-     * 
+     *
      * @param {Boolean} openEvent 是否开启事件功能
      * @param {Boolean} openRotate 是否开启模型自旋转
      * @returns {Three.Renderer}
@@ -112,7 +123,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
         renderer.outputColorSpace = Three.SRGBColorSpace;
         //阴影
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = Three.PCFSoftShadowMap;
+        // renderer.shadowMap.type = Three.PCFSoftShadowMap;
 
         threeContainer.appendChild(renderer.domElement);
 
@@ -155,7 +166,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
      * 初始化threejs控制器，
      * 该控制器主要限制相机的运动轨迹，
      * 非threejs的核心类
-     * 
+     *
      * @returns {OrbitControls}
      */
     function initControls() {
@@ -168,7 +179,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
      * @param {String} modelPath 模型文件地址
      * @returns {Promise<Three.Scene>}
      */
-    async function initModel(modelPath) {
+    function initModel(modelPath) {
 
         let loader;
         if (/\.(glb|gltf)$/.test(modelPath)) {
@@ -178,48 +189,34 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
         }
         return new Promise((resolve, reject) => {
             loader.load(modelPath, obj => {
+                const material = new Three.MeshStandardMaterial({ color: 0xffffff });
+                const material2 = new Three.MeshStandardMaterial({ color: 0x999999 });
+
+                const ground = [
+                    '地面',
+                    '地面1',
+                ]
 
                 // 遍历模型
-                const material = new Three.MeshStandardMaterial({ color: 0xcccccc });
-                const specialMaterial = new Three.MeshStandardMaterial({ color: 0x333333 });
-                const specialMaterial2 = new Three.MeshStandardMaterial({ color: 0x666666 });
-                const specialMaterial3 = new Three.MeshStandardMaterial({ color: 0x999999 });
                 traversalModelTree(obj.scene.children, modelUnit => {
 
+                    //设置阴影
+                    modelUnit.castShadow = true;
+                    modelUnit.receiveShadow = true;
+
                     // 设置材质
-                    modelUnit.material = material;
-                    if (modelUnit.name === '地面') {
-                        // modelUnit.visible = false;
-                        modelUnit.castShadow = true;
-                        modelUnit.receiveShadow = true;
-                    } else if (
-                        modelUnit.name === '扫描'
-                        || modelUnit.name === '保留建筑'
-                        || modelUnit.name === '精神医学综合楼'
-                        || modelUnit.name === '门诊楼'
-                        || modelUnit.name === '大号搂'
-                        || modelUnit.name === '最后一排'
-                        || modelUnit.name === '车库'
-                        || modelUnit.name === '顶楼'
-                        || modelUnit.name === '样条'
-                        || modelUnit.name === '样条1'
-                        || modelUnit.name === '平面'
-                        || modelUnit.name === '圆柱体'
-                    ) {
-                        modelUnit.material = specialMaterial;
+                    if (ground.find(item => item === modelUnit.name)) {
+                        modelUnit.material = material2;
+                    } else {
+                        modelUnit.material = material;
                         if (
                             modelUnit.name === '平面'
                             || modelUnit.name === '车库'
                         ) {
-                            // 这里把模型提高3个单位，否者和地面重叠会出现问题
+                            // 这里把模型提高3个单位，否者和地面重叠会出现闪烁问题
                             modelUnit.position.y = 3;
                         }
-                    } else if (/^Highrise/.test(modelUnit.name)) {
-                        modelUnit.material = specialMaterial2;
                     }
-
-                    //阴影
-                    modelUnit.castShadow = true;
                 });
 
                 resolve(obj.scene);
@@ -229,7 +226,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
         })
 
     }
-    
     /**
      * 递归遍历模型树中每一个最小单位模型，并为其使用回调函数
      * @param {Three.Group} models 模型树
@@ -273,7 +269,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
                 style.cursor = 'pointer';
                 selectedModel = intersects[0];
                 selectedModel.object.material.opacity = .5;
-                // console.log(selectedModel.object.name)
             }
 
         }
@@ -298,7 +293,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
      * 初始化threejs监控点空间坐标
      * @returns {Three.Group}
      */
-    function initMonitor() {
+    function initMonitor(monitorPath) {
         // 当前模型医院四个角的坐标，这里的位置是相对于你正对医院大门时候的位置，参考
         // { x: 415, y: 30, z: 675 }, // 右下
         // { x: 415, y: 30, z: -670 }, // 右上
@@ -339,27 +334,24 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
             ...monitorPositionTop,
             ...monitorPositionBottom
         ];
-        // console.log(monitorPosition.length);
-        // console.log(monitorPositionBottom.length);
-        return addMonitorPoint(monitorPosition, monitorScale);
+        return addMonitorPoint(monitorPath, monitorPosition, monitorScale);
     }
 
     /**
-     * 
+     *
      * @param {{x:Number,y:Number,z:Number}[]} pointPositions 监控点空间坐标数组
      * @param {*} scale 摄像机图片缩放倍数
      * @returns {Three.Group}
      */
-    function addMonitorPoint(pointPositions, scale = 1) {
+    function addMonitorPoint(monitorPath, pointPositions, scale = 1) {
         let spriteGroup = new Three.Group();
         for (let pointPosition of pointPositions) {
-            let map = new Three.TextureLoader().load('/video_point.png');
+            let map = new Three.TextureLoader().load(monitorPath);
             let material = new Three.SpriteMaterial({ map });
             let sprite = new Three.Sprite(material);
             sprite.position.set(pointPosition.x, pointPosition.y, pointPosition.z,);
             sprite.scale.set(scale, scale, scale);
             spriteGroup.add(sprite);
-            // console.log(sprite);
             scene.add(spriteGroup)
         }
         return spriteGroup;
