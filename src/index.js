@@ -29,9 +29,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
         raycaster = initRaycaster();
         renderer = initRenderer(true, true);
         controls = initControls();
-        model = await initModel('/city.gltf'); // 请使用自己的模型文件，并自行修改initModel方法的代码
+        let modelPath, monitorPath;
+        model = await initModel('./city.gltf'); // 请使用自己的模型文件，并自行修改initModel方法的代码
         scene.add(model);
-        spriteGroup = initMonitor('/video_point.png'); // 请使用自己的图片，并自行修改initMonitor方法的代码
+        spriteGroup = initMonitor('./video_point.png'); // 请使用自己的图片，并自行修改initMonitor方法的代码
         initEvent();
     }
 
